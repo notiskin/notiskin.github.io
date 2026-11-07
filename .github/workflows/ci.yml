@@ -1,0 +1,38 @@
+name: CI
+
+# checks the pages against the app's code (notiskin/notiskin, main), so a variable or method the docs
+# haven't caught up with fails here. The weekly run catches an app change that landed after the last push
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: notiskin/notiskin
+          path: app
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        working-directory: app
+      - run: npm run build
+        working-directory: app
+      - run: npm test
+        env:
+          NOTISKIN_APP_DIR: ${{ github.workspace }}/app

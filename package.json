@@ -1,0 +1,9 @@
+{
+  "name": "notiskin-docs",
+  "private": true,
+  "description": "The Notiskin docs site (https://notiskin.github.io/) and the checks that keep it true to the app",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
