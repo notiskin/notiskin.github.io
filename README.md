@@ -20,6 +20,6 @@ When the app gets a new variable or a new `notiskin` method, the test fails here
 
 ## Publishing
 
-A push to `main` that touches `site/` is published by `.github/workflows/pages.yml` (Settings → Pages → Source must be "GitHub Actions"). The old address `https://notiskin.github.io/notiskin/` is a redirect page kept in the app repository, because every release since 0.7 links to it.
+A push to `main` that touches `site/` is published by `.github/workflows/pages.yml` (Settings → Pages → Source must be "GitHub Actions"). The old address `https://notiskin.github.io/notiskin/` is a redirect page kept in the app repository, because releases 0.7 to 0.10.2 still link to it. Newer releases open this site.
 
 MIT licensed, like the app.
