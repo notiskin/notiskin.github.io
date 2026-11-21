@@ -159,3 +159,21 @@ test('every example plugin header on the plugins page declares settings that par
   assert.deepEqual(settings.map(s => s.type), ['toggle', 'text', 'number', 'select', 'color']);
   for (const code of blocks) assert.doesNotThrow(() => new Function(code.replace(/^\s*\/\*\*[\s\S]*?\*\/\s*/, '')), code.slice(0, 60));
 });
+
+test('the plugins page names every permission line, and its example header parses without problems', t => {
+  const module = join(app, 'dist', 'core', 'plugin-permissions.js');
+  // the app gained permission lines after this test was written; an older app checkout has nothing to compare with
+  if (!existsSync(module)) return t.skip('this app checkout has no plugin permissions yet');
+  const { parsePermissionDeclarations, PERMISSION_NAMES, MAX_HOSTS, MAX_HOSTS_PER_LINE } = require(module);
+  const doc = text(read('plugins.html'));
+  assert.ok(doc.includes('@notiskin-permission'));
+  for (const name of PERMISSION_NAMES) assert.ok(doc.includes(name), `${name} is missing from the plugins page`);
+  assert.ok(doc.includes(`up to ${MAX_HOSTS_PER_LINE} on a line and ${MAX_HOSTS} in all`));
+  assert.ok(doc.includes('not enforced'));
+  const blocks = [...read('plugins.html').matchAll(/<pre><code>([\s\S]*?)<\/code><\/pre>/g)].map(m => m[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'));
+  const withPermissions = blocks.filter(b => b.includes('@notiskin-permission'));
+  assert.equal(withPermissions.length, 1);
+  const { declared, problems } = parsePermissionDeclarations(withPermissions[0]);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(declared, ['network', 'storage']);
+});
