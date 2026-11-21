@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Making plugins · Notiskin docs</title>
-<meta name="description" content="How to write a Notiskin plugin: the notiskin API, settings, developer mode, safety and review, and publishing.">
+<meta name="description" content="How to write a Notiskin plugin: the notiskin API, settings, declaring what it does, developer mode, safety and review, and publishing.">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,7 +15,7 @@
 <a href="index.html">Start here</a>
 <a href="themes.html">Making themes</a>
 <a href="plugins.html" aria-current="page">Making plugins</a>
-<div class="toc"><a href="#first">Your first plugin</a><a href="#api">The notiskin object</a><a href="#types">Editor help</a><a href="#lifecycle">When a plugin runs</a><a href="#settings">Settings</a><a href="#dev">Developer mode</a><a href="#safety">Safety and review</a><a href="#publish">Publishing and versions</a></div>
+<div class="toc"><a href="#first">Your first plugin</a><a href="#api">The notiskin object</a><a href="#types">Editor help</a><a href="#lifecycle">When a plugin runs</a><a href="#settings">Settings</a><a href="#permissions">Declaring what it does</a><a href="#dev">Developer mode</a><a href="#safety">Safety and review</a><a href="#publish">Publishing and versions</a></div>
 <h2>More</h2>
 <a href="https://github.com/notiskin/notiskin">Source on GitHub</a>
 <a href="https://github.com/notiskin/notiskin/releases">Downloads</a>
@@ -113,6 +113,24 @@ notiskin.settings.onChange((key, value, all) =&gt; {
 </ul>
 <div class="warn"><p><strong>One thing that is different.</strong> So that <code>settings</code> knows which plugin is asking, even from a callback that runs later, a plugin that declares settings is run inside a function that is given its own <code>notiskin</code>. Use that <code>notiskin</code>, not <code>window.notiskin</code>, and don't count on top-level <code>var</code> and <code>function</code> becoming globals: write <code>window.thing = ...</code> when you mean a global. A plugin with no <code>@notiskin-setting</code> lines runs exactly as before.</p></div>
 
+<h2 id="permissions">Declaring what your plugin does</h2>
+<p>Say what your plugin does in the same comment at the top of the file, one line each, with <code>@notiskin-permission</code> and a name:</p>
+<pre><code>/**
+ * @notiskin-permission network api.example.com *.example.org
+ * @notiskin-permission storage
+ */</code></pre>
+<div class="table-wrap"><table>
+<thead><tr><th>Line</th><th>Use it when your plugin</th></tr></thead>
+<tbody>
+<tr><td><code>network &lt;host&gt; [&lt;host&gt; ...]</code></td><td>talks to other sites. List them like <code>api.example.com</code> or <code>*.example.com</code>: lowercase, no <code>https://</code>, up to 10 on a line and 20 in all.</td></tr>
+<tr><td><code>storage</code></td><td>reads or writes cookies, <code>localStorage</code>, <code>sessionStorage</code> or IndexedDB.</td></tr>
+<tr><td><code>page-scripts</code></td><td>touches Notion's own JavaScript: its globals, or React's internals on the page's elements.</td></tr>
+<tr><td><code>dynamic-code</code></td><td>builds and runs more code: <code>eval</code>, <code>new Function</code>, <code>import()</code>, a timer given text, a script element.</td></tr>
+</tbody></table></div>
+<p>The app also scans your code for things that look like each of these. It reads the code, it never runs it. People see both lists before they turn your plugin on, as small labels on its card and on Browse, and in the update dialog, which points out what a new version adds. Reviewers see them side by side. When the scan finds something your plugin doesn't declare, the warning says so, with the line it saw.</p>
+<p>A line that doesn't make sense is skipped with a note and the rest still count. Only comments before the first line of code count, the same as settings.</p>
+<div class="warn"><p><strong>These lines are not enforced.</strong> Whatever a plugin declares, it still runs with full access to Notion's page: it can read every page you open and send data out, for example through an image or a CSS <code>url()</code>. The scan can be fooled too. The lines are there so people and reviewers can see what a plugin says it does next to what its code seems to do. Declare honestly: a plugin whose scan finds more than it says will be asked about in review.</p></div>
+
 <h2 id="dev">Developer mode</h2>
 <p>To write a plugin without installing it each time, turn on <strong>Settings → Developer</strong> and pick a folder. Every <code>.js</code> file in it runs in Notion like an installed plugin, and <strong>saving a file reloads Notion's tabs</strong> so the new code runs. The files stay where they are, nothing is copied into <code>~/.notiskin/plugins</code>.</p>
 <ul>
@@ -129,13 +147,14 @@ notiskin.settings.onChange((key, value, all) =&gt; {
 <li>A published plugin is <strong>not live until a reviewer approves it</strong>. If the reviewer rejects it, the reason is shown in your Submissions.</li>
 <li>A new <strong>version</strong> of a listed plugin is reviewed too. The reviewer sees the lines that changed, and the version people have stays live until the new one is approved. You can have one version waiting at a time.</li>
 <li>A plugin can be reported. When three different accounts that are at least a day old report it as harmful it is hidden from Browse automatically, and reviewers can hide any item. People who installed it see a warning on the card and can turn it off. Nothing is turned off or deleted for them without their say.</li>
+<li>Reviewers see what the plugin declares next to what the scan found (see <a href="#permissions">Declaring what your plugin does</a>), and for a new version which permissions it adds.</li>
 <li>Reviewers decide by reading the code. There isn't a longer rulebook. What makes a review quick: say what the plugin does in the description, keep the code readable (no minified or hidden code), don't load code from somewhere else, and don't send anything about the person's pages anywhere.</li>
 </ul>
 
 <h2 id="publish">Publishing and versions</h2>
 <ol>
 <li>Sign in with GitHub in <strong>Settings</strong>.</li>
-<li>Open <strong>Publish</strong> on the Plugins page. Give it a name (letters, numbers and spaces, up to 50), a description, up to 3 tags and optionally a link to a GitHub repository or gist. Paste the code, up to 200,000 characters. The <code>@notiskin-setting</code> lines are part of the code, so reviewers see them.</li>
+<li>Open <strong>Publish</strong> on the Plugins page. Give it a name (letters, numbers and spaces, up to 50), a description, up to 3 tags and optionally a link to a GitHub repository or gist. Paste the code, up to 200,000 characters. The <code>@notiskin-setting</code> and <code>@notiskin-permission</code> lines are part of the code, so reviewers see them.</li>
 <li>It waits for a reviewer. <strong>Submissions</strong> shows where it is. You can publish 5 things per hour (themes and plugins together).</li>
 <li>After it is listed, <strong>Publish a new version</strong> takes the new code and a line about what changed. People who installed the plugin see an <strong>Update</strong> button, and updating a plugin asks them to read the warning and the change note first.</li>
 </ol>
