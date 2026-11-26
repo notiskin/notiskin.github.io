@@ -177,3 +177,16 @@ test('the plugins page names every permission line, and its example header parse
   assert.deepEqual(problems, []);
   assert.deepEqual(declared, ['network', 'storage']);
 });
+
+test('the plugins page explains that plugins run in their own world unless they declare page-scripts', t => {
+  const { pluginEntry } = require(join(app, 'dist', 'core', 'library.js'));
+  // the app gained isolated worlds after this test was written; an older app checkout has nothing to compare with
+  if (typeof pluginEntry !== 'function') return t.skip('this app checkout has no isolated worlds yet');
+  const doc = text(read('plugins.html'));
+  assert.ok(doc.includes('isolated world'));
+  assert.ok(doc.includes('notiskin plugin <name>'), 'the DevTools context name');
+  assert.ok(read('plugins.html').includes('id="worlds"'));
+  const config = { pluginSettings: {} };
+  assert.equal(pluginEntry('p', 'console.log(1)', config).isolated, true);
+  assert.equal(pluginEntry('p', '// @notiskin-permission page-scripts\nconsole.log(1)', config).isolated, false);
+});
