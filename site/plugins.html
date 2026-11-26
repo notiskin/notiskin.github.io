@@ -76,8 +76,15 @@
 <li>When a plugin is turned off, deleted, or its developer file changes, Notion's tabs reload, because JavaScript that has run can't be taken back.</li>
 <li>In <strong>safe mode</strong> nothing runs, and nothing is deleted. It all comes back when safe mode is turned off.</li>
 <li>A plugin that throws while loading is logged and skipped. It doesn't stop other plugins.</li>
-<li>A plugin that has no declared settings runs as plain top-level code: <code>var</code> and <code>function</code> at the top level become globals, and <code>notiskin</code> is <code>window.notiskin</code>.</li>
 </ul>
+<h3 id="worlds">Each plugin in its own world</h3>
+<p>From Notiskin 0.14, every plugin runs in its own <strong>isolated world</strong>: its own copy of the page's JavaScript, with its own <code>window</code> and its own <code>notiskin</code>. It shares the page itself, the text, the elements, styles, cookies and storage, so everything the notiskin object does works the same. What changes:</p>
+<ul>
+<li>It can't see Notion's own JavaScript or another plugin's variables, and they can't see its. Top-level <code>var</code> and <code>function</code> names stay its own.</li>
+<li>To look at it in DevTools, pick <code>notiskin plugin &lt;name&gt;</code> in the console's context menu.</li>
+<li>A plugin that needs Notion's own code (its globals, React's internals) adds <code>@notiskin-permission page-scripts</code> to its header (see <a href="#permissions">below</a>). It then runs next to Notion's code: top-level names become globals, and without settings <code>notiskin</code> is <code>window.notiskin</code>.</li>
+</ul>
+<p>This keeps plugins from breaking Notion or each other by accident. It is not a wall: a script element a plugin adds to the page runs next to Notion's code, which is why the scan flags script elements.</p>
 
 <h2 id="settings">Settings</h2>
 <p>A plugin can offer options. Declare them in a comment at the very top of the file, one line per setting, with <code>@notiskin-setting</code> followed by a JSON object:</p>
@@ -111,7 +118,7 @@ notiskin.settings.onChange((key, value, all) =&gt; {
 <li><code>notiskin.settings.getAll()</code> is a copy of all of them.</li>
 <li><code>notiskin.settings.onChange(fn)</code> calls <code>fn(key, value, all)</code> after a change, once for each key that changed, and returns a function that stops listening.</li>
 </ul>
-<div class="warn"><p><strong>One thing that is different.</strong> So that <code>settings</code> knows which plugin is asking, even from a callback that runs later, a plugin that declares settings is run inside a function that is given its own <code>notiskin</code>. Use that <code>notiskin</code>, not <code>window.notiskin</code>, and don't count on top-level <code>var</code> and <code>function</code> becoming globals: write <code>window.thing = ...</code> when you mean a global. A plugin with no <code>@notiskin-setting</code> lines runs exactly as before.</p></div>
+<div class="warn"><p><strong>One thing that is different.</strong> So that <code>settings</code> knows which plugin is asking, even from a callback that runs later, a plugin that declares settings is run inside a function that is given its own <code>notiskin</code>. Use that <code>notiskin</code>, not <code>window.notiskin</code>.</p></div>
 
 <h2 id="permissions">Declaring what your plugin does</h2>
 <p>Say what your plugin does in the same comment at the top of the file, one line each, with <code>@notiskin-permission</code> and a name:</p>
@@ -124,12 +131,12 @@ notiskin.settings.onChange((key, value, all) =&gt; {
 <tbody>
 <tr><td><code>network &lt;host&gt; [&lt;host&gt; ...]</code></td><td>talks to other sites. List them like <code>api.example.com</code> or <code>*.example.com</code>: lowercase, no <code>https://</code>, up to 10 on a line and 20 in all.</td></tr>
 <tr><td><code>storage</code></td><td>reads or writes cookies, <code>localStorage</code>, <code>sessionStorage</code> or IndexedDB.</td></tr>
-<tr><td><code>page-scripts</code></td><td>touches Notion's own JavaScript: its globals, or React's internals on the page's elements.</td></tr>
+<tr><td><code>page-scripts</code></td><td>needs Notion's own JavaScript: its globals, or React's internals on the page's elements. This line changes how the plugin runs: next to Notion's code instead of in <a href="#worlds">its own world</a>.</td></tr>
 <tr><td><code>dynamic-code</code></td><td>builds and runs more code: <code>eval</code>, <code>new Function</code>, <code>import()</code>, a timer given text, a script element.</td></tr>
 </tbody></table></div>
 <p>The app also scans your code for things that look like each of these. It reads the code, it never runs it. People see both lists before they turn your plugin on, as small labels on its card and on Browse, and in the update dialog, which points out what a new version adds. Reviewers see them side by side. When the scan finds something your plugin doesn't declare, the warning says so, with the line it saw.</p>
 <p>A line that doesn't make sense is skipped with a note and the rest still count. Only comments before the first line of code count, the same as settings.</p>
-<div class="warn"><p><strong>These lines are not enforced.</strong> Whatever a plugin declares, it still runs with full access to Notion's page: it can read every page you open and send data out, for example through an image or a CSS <code>url()</code>. The scan can be fooled too. The lines are there so people and reviewers can see what a plugin says it does next to what its code seems to do. Declare honestly: a plugin whose scan finds more than it says will be asked about in review.</p></div>
+<div class="warn"><p><strong>Apart from <code>page-scripts</code>, these lines are not enforced.</strong> Whatever a plugin declares, it still runs with full access to Notion's page: it can read every page you open and send data out, for example through an image or a CSS <code>url()</code>. The scan can be fooled too. The lines are there so people and reviewers can see what a plugin says it does next to what its code seems to do. Declare honestly: a plugin whose scan finds more than it says will be asked about in review.</p></div>
 
 <h2 id="dev">Developer mode</h2>
 <p>To write a plugin without installing it each time, turn on <strong>Settings → Developer</strong> and pick a folder. Every <code>.js</code> file in it runs in Notion like an installed plugin, and <strong>saving a file reloads Notion's tabs</strong> so the new code runs. The files stay where they are, nothing is copied into <code>~/.notiskin/plugins</code>.</p>
